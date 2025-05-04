@@ -3,3 +3,5 @@
 ################################################################################
 
 /todolist-api/.vs
+*.cs
+/todolist-api/obj/Debug/net9.0/todolist-api.AssemblyInfoInputs.cache
