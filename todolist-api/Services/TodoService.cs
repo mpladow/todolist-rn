@@ -3,16 +3,37 @@ using static todolist_api.Services.TodoService;
 using todolist_api.Entities;
 using todolist_api.Models;
 using todolist_api.Interfaces;
+using LinqKit;
 
 namespace todolist_api.Services
 {
 
     public class TodoService(_DbContext _db) : ITodoService
     {
-        public async Task<List<TodoDto>> GetAllTodosAsync()
+        public async Task<List<TodoDto>> GetAllTodosAsync(string? filter)
         {
-            //var TEST = new List<TodoDto>() { new TodoDto { TodoId = 1, Title = "TEST", CompletedAt = null, DeletedAt = null } };
-            return await _db.Todos.Where(x => x.DeletedAt == null).Select(x => new TodoDto { TodoId = x.TodoId, Title = x.Title, CompletedAt = x.CompletedAt }).ToListAsync();
+            if (filter == "all" || string.IsNullOrEmpty(filter))
+            {
+                var x = _db.Todos.ToList();
+                //TODO: switch to using automapper
+                return await _db.Todos.Where(x => x.DeletedAt == null).Select(x => new TodoDto { TodoId = x.TodoId, Title = x.Title, CompletedAt = x.CompletedAt }).ToListAsync();
+            }
+            else
+            {
+                // we can use predicate to dynamically builder the query based off what kind of filter the end user selects.
+                // this keeps our final query clean and readable.
+                var predicate = PredicateBuilder.New<ToDo>();
+                if (filter == "completed")
+                {
+                    predicate = predicate.And(x => x.CompletedAt != null);
+                }
+                else if (filter == "open")
+                {
+                    predicate = predicate.And(x => x.CompletedAt == null);
+                }
+
+                return await _db.Todos.Where(x => x.DeletedAt == null).Where(predicate).Select(x => new TodoDto { TodoId = x.TodoId, Title = x.Title, CompletedAt = x.CompletedAt }).ToListAsync();
+            }
         }
         public async Task<int> AddTodoAsync(TodoDto todo)
         {
@@ -72,11 +93,6 @@ namespace todolist_api.Services
 
 
         public async Task<bool> UpdateTodoAsync(TodoDto todo)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<List<TodoDto>> GetAllTodosByFilterAsync(string filter)
         {
             throw new NotImplementedException();
         }

@@ -4,10 +4,6 @@ namespace todolist_api.Entities
 {
     public partial class _DbContext : DbContext
     {
-        public _DbContext()
-        {
-        }
-
         public _DbContext(DbContextOptions<_DbContext> options)
             : base(options)
         {
@@ -15,9 +11,13 @@ namespace todolist_api.Entities
         public virtual DbSet<ToDo> Todos { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            OnModelCreatingPartial(modelBuilder);
+            modelBuilder.Entity<ToDo>().HasData(
+                new ToDo { TodoId = 1, Title = "Create Project for RN", CompletedAt = new DateTime(), DeletedAt = null },
+                new ToDo { TodoId = 2, Title = "Create Project for API", CompletedAt = null, DeletedAt = null },
+                new ToDo { TodoId = 3, Title = "Create Project for API Tests", CompletedAt = null, DeletedAt = null }
+
+            );
         }
 
-        partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
     }
 }
