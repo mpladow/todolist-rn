@@ -4,7 +4,7 @@ namespace todolist_api.Interfaces
 {
     public interface ITodoService
     {
-        Task<List<TodoDto>> GetAllTodosByFilterAsync(string filter);
+        Task<List<TodoDto>> GetAllTodosAsync(string? filter);
         Task<int> AddTodoAsync(TodoDto todo);
         Task<bool> UpdateTodoAsync(TodoDto todo);
         Task<bool> DeleteTodoAsync(int todoId);

@@ -5,6 +5,8 @@ using todolist_api.Services;
 
 namespace todolist_api.Controllers
 {
+    [ApiController]
+    [Route("api/[controller]/[action]")]
     public class TodoController(ITodoService todoService ):ControllerBase
     {
         //[HttpGet(Name = "GetAllTodos")]
@@ -13,10 +15,10 @@ namespace todolist_api.Controllers
         //    var todos = await todoService.GetAllTodosAsync();
         //    return Ok(todos);
         //}
-        [HttpGet(Name = "GetAllTodosByFilter")]
-        public async Task<ActionResult<List<TodoDto>>> GetAllTodosByFilter([FromQuery] string filter)
+        [HttpGet(Name = "GetAllTodos")]
+        public async Task<ActionResult<List<TodoDto>>> GetAllTodos([FromQuery] string filter = "all")
         {
-            var todos = await todoService.GetAllTodosByFilterAsync(filter);
+            var todos = await todoService.GetAllTodosAsync(filter);
             return Ok(todos);
         }
         [HttpPost(Name = "AddTodo")]
