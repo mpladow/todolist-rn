@@ -1,17 +1,18 @@
-# Welcome to your Expo app 👋
+# Todo List #
 
-Todo List
+
 
 ## Key packages
 
     Tanstack Query - for syncing front end with back end
 	 TODO: enable tanstack to persist data locally when api continues to error.
-	 Immer: for state mutation
+	
+	Immer: for state mutation
 	  
 
 ## Get started locally
 
-## to run on Expo GO, you MUST have Expo GO 53 installed. It will not work on versions below 53.
+### to run on Expo GO, you MUST have Expo GO 53 installed. It will not work on versions below 53.
 
 
 1. Install dependencies
@@ -38,6 +39,6 @@ Todo List
 http://localhost:8081
 ```
 
-6.
 
-### Please note: data syncing will NOT work on Android/iOS at the present time as we using a locally running API. However, data will run locally
+
+### Please note: data syncing will NOT work on Android/iOS at the present time as we using a locally running API. However, the mobile app will still work without data syncing.
