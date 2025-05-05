@@ -1,4 +1,16 @@
-import { Image, StyleSheet, Platform, FlatList, View, Pressable, Dimensions, Text, ScrollView, TextInput } from 'react-native';
+import {
+  Image,
+  StyleSheet,
+  Platform,
+  FlatList,
+  View,
+  Pressable,
+  Dimensions,
+  Text,
+  ScrollView,
+  TextInput,
+  KeyboardAvoidingView,
+} from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -14,6 +26,10 @@ import { borderRadius, borderWidth } from '@/constants';
 import { CustomButton } from '@/components/ui';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import uuid from 'react-native-uuid';
+import { produce } from 'immer';
+import { useTheme } from '@react-navigation/native';
+import { useColorScheme } from '@/hooks/useColorScheme.web';
+import { Keyboard } from 'react-native';
 
 export default function HomeScreen() {
   // hooks
@@ -24,6 +40,7 @@ export default function HomeScreen() {
 
   const { data, isFetching, error, refetch } = useTodosQuery('all');
 
+  const theme = useColorScheme();
   const { mutate } = useMutation(
     {
       mutationFn: addTodo,
@@ -33,15 +50,17 @@ export default function HomeScreen() {
         const previous: TodoDto[] | undefined = queryClient.getQueryData(['todos']);
         // Optimistically update to the new value
         queryClient.setQueryData(['todos'], (old: TodoDto[]) => {
-          return [...old, { ...newTodo, todoId: uuid.v4() }];
+          return [...old, { ...newTodo }];
         });
         // Return a context object with the snapshotted value
         console.log('🚀 ~ onMutate: ~ previous:', previous);
         return { previous };
       },
-      // onError: (err, newTodo, context) => {
-      //   queryClient.setQueryData(['todos'], context?.previous);
-      // },
+      onError: (err, newTodo, context) => {
+        if (context?.previous) {
+          queryClient.setQueryData(['todos'], [...context?.previous, { ...newTodo, todoId: uuid.v4() }]);
+        }
+      },
       // Refetch when done
       onSettled: () => {
         console.log('🚀 ~ HomeScreen ~ queryClient:');
@@ -87,24 +106,36 @@ export default function HomeScreen() {
 
       const todoToUpdate = previous?.find((x) => x.todoId === id);
       if (todoToUpdate) {
-        const newObj = { ...todoToUpdate, completedAt: new Date() };
-        queryClient.setQueryData(['todos'], (old: TodoDto[]) => {
-          return [...old, newObj];
+        queryClient.setQueryData(['todos'], () => {
+          produce((old) => {
+            const updated = old.find((x) => x.todoId === id);
+            if (updated) {
+              updated.completedAt = new Date();
+            }
+          });
         });
+
         // Return a context object with the snapshotted value
         return { previous };
       }
       // Optimistically update to the new value
     },
     onError: (err, id, context) => {
-      queryClient.setQueryData(['todos'], context?.previous);
-      const todoToUpdate = context?.previous?.find((x) => x.todoId === id);
-      if (todoToUpdate) {
-        const newObj = { ...todoToUpdate, completedAt: new Date() };
-        queryClient.setQueryData(['todos'], (old: TodoDto[]) => {
-          return [...old, newObj];
+      console.log('🚀 ~ HomeScreen ~ err:', err);
+      if (context?.previous) {
+        queryClient.setQueryData(['todos'], (old: TodoDto[] = []) => {
+          return produce(old, (draft) => {
+            const updated = draft.find((x) => x.todoId === id);
+            if (updated) {
+              updated.completedAt = new Date();
+            }
+          });
         });
+
         // Return a context object with the snapshotted value
+      } else {
+        console.log(context?.previous, 'PREVIOUS');
+        return context?.previous;
       }
     },
     // Refetch when done
@@ -124,17 +155,36 @@ export default function HomeScreen() {
       const previous: TodoDto[] | undefined = queryClient.getQueryData(['todos']);
       const todoToUpdate = previous?.find((x) => x.todoId === id);
       if (todoToUpdate) {
-        const newObj = { ...todoToUpdate, completedAt: null };
-        queryClient.setQueryData(['todos'], (old: TodoDto[]) => {
-          return [...old, newObj];
+        queryClient.setQueryData(['todos'], (old: TodoDto[] = []) => {
+          produce(old, (draft) => {
+            const updated = draft.find((x) => x.todoId === id);
+            if (updated) {
+              updated.completedAt = undefined;
+            }
+          });
         });
+
         // Return a context object with the snapshotted value
         return { previous };
       }
       // Optimistically update to the new value
     },
-    onError: (error) => {
-      console.log(error, 'ERROR');
+    onError: (error, id, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['todos'], (old: TodoDto[] = []) => {
+          return produce(old, (draft) => {
+            const updated = draft.find((x) => x.todoId === id);
+            if (updated) {
+              updated.completedAt = undefined;
+            }
+          });
+        });
+
+        // Return a context object with the snapshotted value
+      } else {
+        console.log(context?.previous, 'PREVIOUS');
+        return context?.previous;
+      }
     },
     // Refetch when done
     onSettled: () => {
@@ -152,6 +202,7 @@ export default function HomeScreen() {
       title: title,
     };
     mutate(newTodo);
+    Keyboard.dismiss();
   };
 
   const handlePressCheckbox = (id: number) => {
@@ -169,29 +220,31 @@ export default function HomeScreen() {
     }
   };
   return (
-    <View style={[styles.container, { marginBottom: bottom, marginTop: top }]}>
+    <KeyboardAvoidingView behavior="height" style={[styles.container, { marginBottom: bottom, marginTop: top }]}>
+      {/* // TODO: move into reusable component */}
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 4 }}>
         <View style={{ flex: 1 }}>
-          <Text>ToDo List</Text>
+          <ThemedText>ToDo List</ThemedText>
         </View>
         {error && (
           <View style={{ flex: 1, alignItems: 'center' }}>
-            <Text>Unable to reach API</Text>
+            <ThemedText>Unable to reach API</ThemedText>
           </View>
         )}
         <View style={{ flex: 1, alignItems: 'flex-end' }}>
-          <CustomButton
-            label={editMode ? 'Editing' : 'Edit Mode'}
-            buttonType={'primary'}
-            buttonSize={'small'}
-            onPress={() => {
-              setEditMode(!editMode);
-            }}
-          />
+          {data.length > 0 && (
+            <CustomButton
+              label={editMode ? 'Editing' : 'Edit Mode'}
+              buttonType={'primary'}
+              buttonSize={'small'}
+              onPress={() => {
+                setEditMode(!editMode);
+              }}
+            />
+          )}
         </View>
       </View>
       <Animated.FlatList
-        entering={Platform.OS !== 'web' ? FadeInUp : undefined}
         data={data}
         contentContainerStyle={{ height: Dimensions.get('screen').height - 100, flexGrow: 1 }}
         ItemSeparatorComponent={() => <View style={{ height: 4 }} />}
@@ -201,18 +254,23 @@ export default function HomeScreen() {
             <View style={{ padding: 4, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
               <View style={{ flexDirection: 'row' }}>
                 <Pressable
+                  hitSlop={10}
                   onPress={() => handlePressCheckbox(item.todoId ?? 0)}
-                  style={[styles.checkbox, item.completedAt ? { backgroundColor: 'blue' } : { backgroundColor: 'transparent' }]}
+                  style={[
+                    styles.checkbox,
+                    { borderColor: theme == 'dark' ? 'white' : 'black' },
+                    item.completedAt ? { backgroundColor: 'blue' } : { backgroundColor: 'transparent' },
+                  ]}
                 />
-                <Text>{item.title}</Text>
+                <ThemedText>{item.title}</ThemedText>
               </View>
               {editMode && (
                 <CustomButton
+                  hitSlop={10}
                   onPress={() => handleDelete(item?.todoId)}
-                  label={'X'}
+                  label={'Delete'}
                   buttonType={'danger'}
                   buttonSize={'small'}
-                  variant={'round'}
                 />
               )}
             </View>
@@ -223,7 +281,7 @@ export default function HomeScreen() {
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, padding: 4 }}>
         <View style={{ flex: 1 }}>
           <TextInput
-            style={{ padding: 4, borderWidth: 1, borderColor: 'black', color: 'black' }}
+            style={{ padding: 4, borderWidth: 1, borderColor: 'black', color: theme == 'dark' ? 'white' : 'black' }}
             value={title}
             onChangeText={(val) => setTitle(val)}
             placeholder={'Enter a todo item'}
@@ -235,7 +293,7 @@ export default function HomeScreen() {
           </Pressable>
         </View>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
