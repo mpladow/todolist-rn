@@ -6,106 +6,128 @@ import { useEffect, useState } from 'react';
 import { TodoDto } from '@/models/todosDto';
 import { TodoForm } from '@/models/todoForm';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { addTodo, completeTodo, fetchAllTodos, FilterType, openTodo } from '@/api/api';
+import { addTodo, completeTodo, deleteTodo, fetchAllTodos, FilterType, openTodo } from '@/api/api';
 import { useTodosQuery } from '@/api';
 import { todoQueryOptions } from '@/api/queries/Todos/todoQueryOptions';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { borderRadius, borderWidth } from '@/constants';
+import { CustomButton } from '@/components/ui';
+import Animated, { FadeInUp } from 'react-native-reanimated';
+import uuid from 'react-native-uuid';
 
 export default function HomeScreen() {
   // hooks
   const [title, setTitle] = useState('');
-  const [filter, setFilter] = useState('all' as FilterType);
+  const [editMode, setEditMode] = useState(false);
   const queryClient = useQueryClient();
+  const { bottom, top } = useSafeAreaInsets();
 
   const { data, isFetching, error, refetch } = useTodosQuery('all');
 
-  useEffect(() => {
-    refetch();
-  }, []);
+  const { mutate } = useMutation(
+    {
+      mutationFn: addTodo,
+      onMutate: async (newTodo: TodoDto) => {
+        await queryClient.cancelQueries({ queryKey: ['todos'] });
 
-  const { mutate } = useMutation({
-    mutationFn: addTodo,
-    onSuccess: () => {
-      console.log('IS SUCCESS');
+        const previous: TodoDto[] | undefined = queryClient.getQueryData(['todos']);
+        // Optimistically update to the new value
+        queryClient.setQueryData(['todos'], (old: TodoDto[]) => {
+          return [...old, { ...newTodo, todoId: uuid.v4() }];
+        });
+        // Return a context object with the snapshotted value
+        console.log('🚀 ~ onMutate: ~ previous:', previous);
+        return { previous };
+      },
+      // onError: (err, newTodo, context) => {
+      //   queryClient.setQueryData(['todos'], context?.previous);
+      // },
+      // Refetch when done
+      onSettled: () => {
+        console.log('🚀 ~ HomeScreen ~ queryClient:');
+
+        queryClient.invalidateQueries();
+        if (Platform.OS == 'web') {
+          refetch();
+        }
+      },
     },
-    onMutate: async (newTodo: TodoDto) => {
-      let x = await queryClient.ensureQueryData({ queryKey: ['todos', filter] });
-      console.log('🚀 ~ onMutate: ~ x:', x);
-      await queryClient.cancelQueries({ queryKey: ['todos', filter] });
-      console.log('🚀 ~ onMutate: ~ queryClient:', queryClient);
+    queryClient,
+  );
 
-      const previous = queryClient.getQueryData(['todos', filter]);
-      console.log('🚀 ~ onMutate: ~ previous:', previous);
-
+  const { mutate: deleteTodoMutation } = useMutation({
+    mutationFn: deleteTodo,
+    onMutate: async (id: number) => {
+      await queryClient.cancelQueries({ queryKey: ['todos'] });
+      const previous: TodoDto[] | undefined = queryClient.getQueryData(['todos']);
       // Optimistically update to the new value
-      queryClient.setQueryData(['todos', filter], (old: TodoDto[]) => {
-        console.log('🚀 ~ queryClient.setQueryData ~ old:', old);
-        return [...old, newTodo];
+      queryClient.setQueryData(['todos'], (old: TodoDto[]) => {
+        const newArray = old.filter((x) => x.todoId !== id);
+        return newArray;
       });
       // Return a context object with the snapshotted value
-      // return { previous };
-    },
-    onError: (error) => {
-      console.log(error, 'ERROR');
+      return { previous };
     },
     // Refetch when done
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['todos', filter] });
+      //   console.log('🚀 ~ HomeScreen ~ queryClient:', queryClient.unmount);
+      queryClient.invalidateQueries();
+      if (Platform.OS == 'web') {
+        refetch();
+      }
     },
   });
 
   const { mutate: completionMutation } = useMutation({
     mutationFn: completeTodo,
-    onSuccess: () => {
-      console.log('IS SUCCESS');
-    },
     onMutate: async (id: number) => {
-      await queryClient.cancelQueries({ queryKey: ['todos', filter] });
+      await queryClient.cancelQueries({ queryKey: ['todos'] });
 
-      const previous: TodoDto[] | undefined = queryClient.getQueryData(['todos', filter]);
-      console.log('🚀 ~ onMutate: ~ previous:', previous);
+      const previous: TodoDto[] | undefined = queryClient.getQueryData(['todos']);
 
       const todoToUpdate = previous?.find((x) => x.todoId === id);
       if (todoToUpdate) {
         const newObj = { ...todoToUpdate, completedAt: new Date() };
-        queryClient.setQueryData(['todos', filter], (old: TodoDto[]) => {
-          console.log('🚀 ~ queryClient.setQueryData ~ old:', old);
+        queryClient.setQueryData(['todos'], (old: TodoDto[]) => {
           return [...old, newObj];
         });
-        console.log('🚀 ~ onMutate: ~ newObj:', newObj);
         // Return a context object with the snapshotted value
         return { previous };
       }
       // Optimistically update to the new value
     },
-    onError: (error) => {
-      console.log(error, 'ERROR');
+    onError: (err, id, context) => {
+      queryClient.setQueryData(['todos'], context?.previous);
+      const todoToUpdate = context?.previous?.find((x) => x.todoId === id);
+      if (todoToUpdate) {
+        const newObj = { ...todoToUpdate, completedAt: new Date() };
+        queryClient.setQueryData(['todos'], (old: TodoDto[]) => {
+          return [...old, newObj];
+        });
+        // Return a context object with the snapshotted value
+      }
     },
     // Refetch when done
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['todos', filter] });
+      queryClient.invalidateQueries({ queryKey: ['todos'] });
+      if (Platform.OS == 'web') {
+        refetch();
+      }
     },
   });
 
   const { mutate: openTodoMutation } = useMutation({
     mutationFn: openTodo,
-    onSuccess: () => {
-      console.log('IS SUCCESS');
-    },
     onMutate: async (id: number) => {
-      await queryClient.cancelQueries({ queryKey: ['todos', filter] });
+      await queryClient.cancelQueries({ queryKey: ['todos'] });
 
-      const previous: TodoDto[] | undefined = queryClient.getQueryData(['todos', filter]);
-      console.log('🚀 ~ onMutate: ~ previous:', previous);
-
+      const previous: TodoDto[] | undefined = queryClient.getQueryData(['todos']);
       const todoToUpdate = previous?.find((x) => x.todoId === id);
       if (todoToUpdate) {
         const newObj = { ...todoToUpdate, completedAt: null };
-        queryClient.setQueryData(['todos', filter], (old: TodoDto[]) => {
-          console.log('🚀 ~ queryClient.setQueryData ~ old:', old);
+        queryClient.setQueryData(['todos'], (old: TodoDto[]) => {
           return [...old, newObj];
         });
-        console.log('🚀 ~ onMutate: ~ newObj:', newObj);
         // Return a context object with the snapshotted value
         return { previous };
       }
@@ -116,9 +138,13 @@ export default function HomeScreen() {
     },
     // Refetch when done
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['todos', filter] });
+      queryClient.invalidateQueries();
+      if (Platform.OS == 'web') {
+        refetch();
+      }
     },
   });
+
   // handlers
   const handleAddNew = () => {
     console.log(title);
@@ -136,53 +162,76 @@ export default function HomeScreen() {
       completionMutation(id);
     }
   };
-  //   if (isFetching) {
-  //     return (
-  //       <View style={{ backgroundColor: 'pink' }}>
-  //         <ThemedText>Fetching...</ThemedText>
-  //       </View>
-  //     );
-  //   }
-  const { height } = Dimensions.get('window');
-  const { bottom, top } = useSafeAreaInsets();
+
+  const handleDelete = (id?: number) => {
+    if (id) {
+      deleteTodoMutation(id);
+    }
+  };
   return (
-    <View style={[styles.container, { paddingBottom: bottom, marginTop: top }]}>
-      <Text>ToDo List</Text>
-      <FlatList
+    <View style={[styles.container, { marginBottom: bottom, marginTop: top }]}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 4 }}>
+        <View style={{ flex: 1 }}>
+          <Text>ToDo List</Text>
+        </View>
+        {error && (
+          <View style={{ flex: 1, alignItems: 'center' }}>
+            <Text>Unable to reach API</Text>
+          </View>
+        )}
+        <View style={{ flex: 1, alignItems: 'flex-end' }}>
+          <CustomButton
+            label={editMode ? 'Editing' : 'Edit Mode'}
+            buttonType={'primary'}
+            buttonSize={'small'}
+            onPress={() => {
+              setEditMode(!editMode);
+            }}
+          />
+        </View>
+      </View>
+      <Animated.FlatList
+        entering={Platform.OS !== 'web' ? FadeInUp : undefined}
         data={data}
         contentContainerStyle={{ height: Dimensions.get('screen').height - 100, flexGrow: 1 }}
         ItemSeparatorComponent={() => <View style={{ height: 4 }} />}
         scrollEnabled
         renderItem={({ item, index }) => {
           return (
-            <View style={{ padding: 4, flexDirection: 'row', alignItems: 'center' }}>
-              <Pressable
-                onPress={() => handlePressCheckbox(item.todoId ?? 0)}
-                style={[
-                  item.completedAt
-                    ? { backgroundColor: 'blue' }
-                    : { backgroundColor: 'transparent', borderWidth: 2, borderColor: 'blue', borderRadius: 4 },
-                  { width: 20, height: 20 },
-                  { marginRight: 4 },
-                ]}
-              />
-              <Text>{item.title}</Text>
+            <View style={{ padding: 4, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <View style={{ flexDirection: 'row' }}>
+                <Pressable
+                  onPress={() => handlePressCheckbox(item.todoId ?? 0)}
+                  style={[styles.checkbox, item.completedAt ? { backgroundColor: 'blue' } : { backgroundColor: 'transparent' }]}
+                />
+                <Text>{item.title}</Text>
+              </View>
+              {editMode && (
+                <CustomButton
+                  onPress={() => handleDelete(item?.todoId)}
+                  label={'X'}
+                  buttonType={'danger'}
+                  buttonSize={'small'}
+                  variant={'round'}
+                />
+              )}
             </View>
           );
         }}
       />
 
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, padding: 4, backgroundColor: 'blue' }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, padding: 4 }}>
         <View style={{ flex: 1 }}>
           <TextInput
-            style={{ padding: 4, borderWidth: 1, borderColor: 'white', color: 'white' }}
+            style={{ padding: 4, borderWidth: 1, borderColor: 'black', color: 'black' }}
             value={title}
             onChangeText={(val) => setTitle(val)}
+            placeholder={'Enter a todo item'}
           />
         </View>
         <View>
-          <Pressable onPress={handleAddNew} style={[{ width: 60, padding: 4 }]}>
-            <Text>Add</Text>
+          <Pressable onPress={handleAddNew} style={[{ width: 60, padding: 4, borderRadius: 4, backgroundColor: 'blue' }]}>
+            <Text style={{ color: 'white', textAlign: 'center' }}>Add</Text>
           </Pressable>
         </View>
       </View>
@@ -205,5 +254,13 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     position: 'absolute',
+  },
+  checkbox: {
+    borderRadius: borderRadius,
+    borderWidth: borderWidth,
+    borderColor: 'black',
+    marginRight: 4,
+    width: 24,
+    height: 24,
   },
 });

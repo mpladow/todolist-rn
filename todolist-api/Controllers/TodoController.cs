@@ -16,9 +16,9 @@ namespace todolist_api.Controllers
         //    return Ok(todos);
         //}
         [HttpGet(Name = "GetAllTodos")]
-        public async Task<ActionResult<List<TodoDto>>> GetAllTodos([FromQuery] string filter = "all")
+        public async Task<ActionResult<List<TodoDto>>> GetAllTodos()
         {
-            var todos = await todoService.GetAllTodosAsync(filter);
+            var todos = await todoService.GetAllTodosAsync();
             return Ok(todos);
         }
         [HttpPost(Name = "AddTodo")]
