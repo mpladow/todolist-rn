@@ -91,7 +91,7 @@ namespace todolist_api.Controllers
             }
         }
         [HttpPut(Name = "OpenTodo")]
-        public async Task<IActionResult> OpenTodo([FromBody] int todoId)
+        public async Task<IActionResult> OpenTodo([FromQuery] int todoId)
         {
             if (todoId <= 0)
             {
