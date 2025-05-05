@@ -1,4 +1,4 @@
-import { StyleSheet, Platform, View, Pressable, Dimensions, Text, TextInput, KeyboardAvoidingView } from 'react-native';
+import { StyleSheet, View, Pressable, Dimensions, Text, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
 import { useEffect, useState } from 'react';
@@ -10,7 +10,7 @@ import { useTodosQuery } from '@/api';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { borderRadius, borderWidth } from '@/constants';
 import { CustomButton } from '@/components/ui';
-import Animated, { FadeInUp } from 'react-native-reanimated';
+import Animated, { FadeInDown, FadeInUp, FadeOutLeft } from 'react-native-reanimated';
 import uuid from 'react-native-uuid';
 import { produce } from 'immer';
 import { useColorScheme } from '@/hooks/useColorScheme.web';
@@ -40,7 +40,6 @@ export default function HomeScreen() {
           return [...old, { ...newTodo }];
         });
         // Return a context object with the snapshotted value
-        console.log('🚀 ~ onMutate: ~ previous:', previous);
         return { previous };
       },
       onError: (err, newTodo, context) => {
@@ -50,8 +49,6 @@ export default function HomeScreen() {
       },
       // Refetch when done
       onSettled: () => {
-        console.log('🚀 ~ HomeScreen ~ queryClient:');
-
         queryClient.invalidateQueries();
         if (Platform.OS == 'web') {
           refetch();
@@ -76,7 +73,6 @@ export default function HomeScreen() {
     },
     // Refetch when done
     onSettled: () => {
-      //   console.log('🚀 ~ HomeScreen ~ queryClient:', queryClient.unmount);
       queryClient.invalidateQueries();
       if (Platform.OS == 'web') {
         refetch();
@@ -108,7 +104,6 @@ export default function HomeScreen() {
       // Optimistically update to the new value
     },
     onError: (err, id, context) => {
-      console.log('🚀 ~ HomeScreen ~ err:', err);
       if (context?.previous) {
         queryClient.setQueryData(['todos'], (old: TodoDto[] = []) => {
           return produce(old, (draft) => {
@@ -121,7 +116,6 @@ export default function HomeScreen() {
 
         // Return a context object with the snapshotted value
       } else {
-        console.log(context?.previous, 'PREVIOUS');
         return context?.previous;
       }
     },
@@ -169,7 +163,6 @@ export default function HomeScreen() {
 
         // Return a context object with the snapshotted value
       } else {
-        console.log(context?.previous, 'PREVIOUS');
         return context?.previous;
       }
     },
@@ -184,7 +177,6 @@ export default function HomeScreen() {
 
   // handlers
   const handleAddNew = () => {
-    console.log(title);
     const newTodo: TodoForm = {
       title: title,
     };
@@ -232,13 +224,17 @@ export default function HomeScreen() {
         </View>
       </View>
       <Animated.FlatList
+        entering={Platform.OS == 'web' ? undefined : FadeInUp}
         data={data}
         contentContainerStyle={{ height: Dimensions.get('screen').height - 100, flexGrow: 1 }}
         ItemSeparatorComponent={() => <View style={{ height: 4 }} />}
         scrollEnabled
         renderItem={({ item, index }) => {
           return (
-            <View style={{ padding: 4, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Animated.View
+              entering={Platform.OS == 'web' ? undefined : FadeInDown}
+              exiting={Platform.OS == 'web' ? undefined : FadeOutLeft}
+              style={{ padding: 4, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
               <View style={{ flexDirection: 'row' }}>
                 <Pressable
                   hitSlop={10}
@@ -260,7 +256,7 @@ export default function HomeScreen() {
                   buttonSize={'small'}
                 />
               )}
-            </View>
+            </Animated.View>
           );
         }}
       />
