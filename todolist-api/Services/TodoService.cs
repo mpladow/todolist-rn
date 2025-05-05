@@ -3,6 +3,7 @@ using static todolist_api.Services.TodoService;
 using todolist_api.Entities;
 using todolist_api.Models;
 using todolist_api.Interfaces;
+using LinqKit;
 
 namespace todolist_api.Services
 {
@@ -11,8 +12,11 @@ namespace todolist_api.Services
     {
         public async Task<List<TodoDto>> GetAllTodosAsync()
         {
-            //var TEST = new List<TodoDto>() { new TodoDto { TodoId = 1, Title = "TEST", CompletedAt = null, DeletedAt = null } };
+
+            //TODO: switch to using automapper
             return await _db.Todos.Where(x => x.DeletedAt == null).Select(x => new TodoDto { TodoId = x.TodoId, Title = x.Title, CompletedAt = x.CompletedAt }).ToListAsync();
+
+
         }
         public async Task<int> AddTodoAsync(TodoDto todo)
         {
@@ -72,11 +76,6 @@ namespace todolist_api.Services
 
 
         public async Task<bool> UpdateTodoAsync(TodoDto todo)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<List<TodoDto>> GetAllTodosByFilterAsync(string filter)
         {
             throw new NotImplementedException();
         }
