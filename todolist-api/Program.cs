@@ -43,6 +43,12 @@ namespace todolist_api
                 dbContext.Database.EnsureDeleted(); // Ensures the database is reset
                 dbContext.Database.EnsureCreated(); // Recreates the database and applies seed data
             }
+            app.UseCors(options =>
+            {
+                options.AllowAnyOrigin()
+                       .AllowAnyMethod()
+                       .AllowAnyHeader();
+            });
 
             app.UseHttpsRedirection();
 
