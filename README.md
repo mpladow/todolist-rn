@@ -10,6 +10,11 @@
 	Immer: for state mutation
 	  
 
+## Improvements
+	Extract magic values into seperate contants folder
+	Refactor components into reusable components (i.e, containers)
+	persist data when user is unable to access api.
+
 ## Get started locally
 
 ### to run on Expo GO, you MUST have Expo GO 53 installed. It will not work on versions below 53.

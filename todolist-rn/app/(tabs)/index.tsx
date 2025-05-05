@@ -1,33 +1,18 @@
-import {
-  Image,
-  StyleSheet,
-  Platform,
-  FlatList,
-  View,
-  Pressable,
-  Dimensions,
-  Text,
-  ScrollView,
-  TextInput,
-  KeyboardAvoidingView,
-} from 'react-native';
+import { StyleSheet, Platform, View, Pressable, Dimensions, Text, TextInput, KeyboardAvoidingView } from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
 import { useEffect, useState } from 'react';
 import { TodoDto } from '@/models/todosDto';
 import { TodoForm } from '@/models/todoForm';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { addTodo, completeTodo, deleteTodo, fetchAllTodos, FilterType, openTodo } from '@/api/api';
 import { useTodosQuery } from '@/api';
-import { todoQueryOptions } from '@/api/queries/Todos/todoQueryOptions';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { borderRadius, borderWidth } from '@/constants';
 import { CustomButton } from '@/components/ui';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import uuid from 'react-native-uuid';
 import { produce } from 'immer';
-import { useTheme } from '@react-navigation/native';
 import { useColorScheme } from '@/hooks/useColorScheme.web';
 import { Keyboard } from 'react-native';
 
@@ -38,9 +23,11 @@ export default function HomeScreen() {
   const queryClient = useQueryClient();
   const { bottom, top } = useSafeAreaInsets();
 
-  const { data, isFetching, error, refetch } = useTodosQuery('all');
+  const { data, error, refetch } = useTodosQuery('all');
 
   const theme = useColorScheme();
+
+  // TODO: extract this mutation logic into a seperate reusable hook so it can be accessed in other locations. This will do for now.
   const { mutate } = useMutation(
     {
       mutationFn: addTodo,
@@ -288,7 +275,7 @@ export default function HomeScreen() {
           />
         </View>
         <View>
-          <Pressable onPress={handleAddNew} style={[{ width: 60, padding: 4, borderRadius: 4, backgroundColor: 'blue' }]}>
+          <Pressable onPress={handleAddNew} style={[{ width: 60, padding: 4, borderRadius: 4 }]}>
             <Text style={{ color: 'white', textAlign: 'center' }}>Add</Text>
           </Pressable>
         </View>
