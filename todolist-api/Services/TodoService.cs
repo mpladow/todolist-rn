@@ -60,10 +60,12 @@ namespace todolist_api.Services
         }
         public async Task<bool> DeleteTodoAsync(int todoId)
         {
-            var todoFound = _db.Todos.Find(todoId);
+            var TEST = _db.Todos.ToList();
+            var todoFound = _db.Todos.FirstOrDefault(x => x.TodoId == todoId);
             if (todoFound != null)
             {
-                _db.Remove(todoFound);
+                todoFound.DeletedAt = DateTime.Now;
+                _db.Update(todoFound);
                 await _db.SaveChangesAsync();
                 return true;
             }
