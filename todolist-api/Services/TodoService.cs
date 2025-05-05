@@ -10,30 +10,13 @@ namespace todolist_api.Services
 
     public class TodoService(_DbContext _db) : ITodoService
     {
-        public async Task<List<TodoDto>> GetAllTodosAsync(string? filter)
+        public async Task<List<TodoDto>> GetAllTodosAsync()
         {
-            if (filter == "all" || string.IsNullOrEmpty(filter))
-            {
-                var x = _db.Todos.ToList();
-                //TODO: switch to using automapper
-                return await _db.Todos.Where(x => x.DeletedAt == null).Select(x => new TodoDto { TodoId = x.TodoId, Title = x.Title, CompletedAt = x.CompletedAt }).ToListAsync();
-            }
-            else
-            {
-                // we can use predicate to dynamically builder the query based off what kind of filter the end user selects.
-                // this keeps our final query clean and readable.
-                var predicate = PredicateBuilder.New<ToDo>();
-                if (filter == "completed")
-                {
-                    predicate = predicate.And(x => x.CompletedAt != null);
-                }
-                else if (filter == "open")
-                {
-                    predicate = predicate.And(x => x.CompletedAt == null);
-                }
 
-                return await _db.Todos.Where(x => x.DeletedAt == null).Where(predicate).Select(x => new TodoDto { TodoId = x.TodoId, Title = x.Title, CompletedAt = x.CompletedAt }).ToListAsync();
-            }
+            //TODO: switch to using automapper
+            return await _db.Todos.Where(x => x.DeletedAt == null).Select(x => new TodoDto { TodoId = x.TodoId, Title = x.Title, CompletedAt = x.CompletedAt }).ToListAsync();
+
+
         }
         public async Task<int> AddTodoAsync(TodoDto todo)
         {

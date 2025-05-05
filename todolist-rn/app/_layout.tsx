@@ -10,6 +10,9 @@ import { persistQueryClient } from '@tanstack/query-persist-client-core';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import HomeScreen from './(tabs)';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import { fetchAllTodos } from '@/api/api';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
+import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -26,45 +29,55 @@ export default function RootLayout() {
     }
   }, [loaded]);
 
-  const queryClient = new QueryClient();
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        gcTime: 1000 * 60 * 60 * 24, // 24 hours
+      },
+    },
+  });
 
-//   const asyncStoragePersistor = {
-//     persistClient: async (client: any) => {
-//       try {
-//         await AsyncStorage.setItem('REACT_QUERY_OFFLINE_CACHE', JSON.stringify(client));
-//       } catch (error) {
-//         console.error('Error persisting query client:', error);
-//       }
-//     },
-//     restoreClient: async () => {
-//       try {
-//         const cache = await AsyncStorage.getItem('REACT_QUERY_OFFLINE_CACHE');
-//         return cache ? JSON.parse(cache) : undefined;
-//       } catch (error) {
-//         console.error('Error restoring query client:', error);
-//         return undefined;
-//       }
-//     },
-//     removeClient: async () => {
-//       try {
-//         await AsyncStorage.removeItem('REACT_QUERY_OFFLINE_CACHE');
-//       } catch (error) {
-//         console.error('Error removing query client:', error);
-//       }
-//     },
-//   };
+  const persister = createSyncStoragePersister({
+    storage: window.localStorage,
+  });
 
-//   persistQueryClient({
-//     queryClient,
-//     persister: asyncStoragePersistor,
-//   });
+  //   const asyncStoragePersistor = {
+  //     persistClient: async (client: any) => {
+  //       try {
+  //         await AsyncStorage.setItem('REACT_QUERY_OFFLINE_CACHE', JSON.stringify(client));
+  //       } catch (error) {
+  //         console.error('Error persisting query client:', error);
+  //       }
+  //     },
+  //     restoreClient: async () => {
+  //       try {
+  //         const cache = await AsyncStorage.getItem('REACT_QUERY_OFFLINE_CACHE');
+  //         return cache ? JSON.parse(cache) : undefined;
+  //       } catch (error) {
+  //         console.error('Error restoring query client:', error);
+  //         return undefined;
+  //       }
+  //     },
+  //     removeClient: async () => {
+  //       try {
+  //         await AsyncStorage.removeItem('REACT_QUERY_OFFLINE_CACHE');
+  //       } catch (error) {
+  //         console.error('Error removing query client:', error);
+  //       }
+  //     },
+  //   };
+
+    persistQueryClient({
+      queryClient,
+      persister: persister,
+    });
 
   if (!loaded) {
     return null;
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
+    <PersistQueryClientProvider client={queryClient} persistOptions={{ persister }}>
       {/* <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />
@@ -73,6 +86,6 @@ export default function RootLayout() {
       {/* <ReactQueryDevtools initialIsOpen={false} /> */}
       <HomeScreen />
       {/* <StatusBar style="auto" backgroundColor={colorScheme === 'dark' ? '#000' : '#fff'} /> */}
-    </QueryClientProvider>
+    </PersistQueryClientProvider>
   );
 }

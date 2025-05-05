@@ -10,9 +10,9 @@ export type FilterType = "all" | "completed" | "notCompleted"
 // 	const response = await fetch(`${url}/${TODO_ENDPOINT}`)
 // 	return response.json();
 // }
-export const fetchAllTodos = async (filter: FilterType): Promise<TodoDto[]> => {
+export const fetchAllTodos = async (): Promise<TodoDto[]> => {
 	const TODO_ENDPOINT = 'Todo/GetAllTodos'
-	const response = await fetch(`${url}${TODO_ENDPOINT}?filter=${filter}`)
+	const response = await fetch(`${url}${TODO_ENDPOINT}`)
 	return response.json();
 }
 
@@ -27,6 +27,20 @@ export const addTodo = async (newTodo: TodoDto) => {
 	})
 	return response.json();
 }
+
+
+export const deleteTodo = async (todoId: number) => {
+	const ENDPOINT = `Todo/DeleteTodo`;
+
+	const response = await fetch(`${url}${ENDPOINT}?todoId=${todoId}`, {
+		method: 'DELETE', headers: {
+			Accept: 'application/json',
+			'Content-Type': 'application/json'
+		},
+	})
+	return response.json();
+}
+
 export const completeTodo = async (todoId: number) => {
 	const ENDPOINT = `Todo/CompleteTodo`;
 
