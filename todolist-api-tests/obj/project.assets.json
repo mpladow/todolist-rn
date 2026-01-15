@@ -3220,11 +3220,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\mplad\\source\\repos\\todolist\\todolist-api-tests\\todolist-api-tests.csproj",
+      "projectUniqueName": "C:\\Users\\mplad\\source\\repos\\todolist-rn\\todolist-api-tests\\todolist-api-tests.csproj",
       "projectName": "todolist-api-tests",
-      "projectPath": "C:\\Users\\mplad\\source\\repos\\todolist\\todolist-api-tests\\todolist-api-tests.csproj",
+      "projectPath": "C:\\Users\\mplad\\source\\repos\\todolist-rn\\todolist-api-tests\\todolist-api-tests.csproj",
       "packagesPath": "C:\\Users\\mplad\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\mplad\\source\\repos\\todolist\\todolist-api-tests\\obj\\",
+      "outputPath": "C:\\Users\\mplad\\source\\repos\\todolist-rn\\todolist-api-tests\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -3239,14 +3239,15 @@
       ],
       "sources": {
         "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+        "C:\\Program Files\\dotnet\\library-packs": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
         "net9.0": {
           "targetAlias": "net9.0",
           "projectReferences": {
-            "C:\\Users\\mplad\\source\\repos\\todolist\\todolist-api\\todolist-api.csproj": {
-              "projectPath": "C:\\Users\\mplad\\source\\repos\\todolist\\todolist-api\\todolist-api.csproj"
+            "C:\\Users\\mplad\\source\\repos\\todolist-rn\\todolist-api\\todolist-api.csproj": {
+              "projectPath": "C:\\Users\\mplad\\source\\repos\\todolist-rn\\todolist-api\\todolist-api.csproj"
             }
           }
         }
@@ -3261,7 +3262,7 @@
         "auditLevel": "low",
         "auditMode": "direct"
       },
-      "SdkAnalysisLevel": "9.0.200"
+      "SdkAnalysisLevel": "9.0.300"
     },
     "frameworks": {
       "net9.0": {
@@ -3308,7 +3309,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.203/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.302/PortableRuntimeIdentifierGraph.json"
       }
     }
   }

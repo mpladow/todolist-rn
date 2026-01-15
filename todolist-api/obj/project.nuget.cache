@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "HDwK/Vl62r8=",
+  "dgSpecHash": "poDy/Yigjvs=",
   "success": true,
-  "projectFilePath": "C:\\Users\\mplad\\source\\repos\\todolist\\todolist-api\\todolist-api.csproj",
+  "projectFilePath": "C:\\Users\\mplad\\source\\repos\\todolist-rn\\todolist-api\\todolist-api.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\mplad\\.nuget\\packages\\entityframework\\6.5.0\\entityframework.6.5.0.nupkg.sha512",
     "C:\\Users\\mplad\\.nuget\\packages\\humanizer.core\\2.14.1\\humanizer.core.2.14.1.nupkg.sha512",

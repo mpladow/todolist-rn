@@ -1,18 +1,13 @@
-import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { StatusBar } from 'expo-status-bar';
-import React, { useEffect } from 'react';
-import 'react-native-reanimated';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
-import { persistQueryClient } from '@tanstack/query-persist-client-core';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import HomeScreen from './(tabs)';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-import { fetchAllTodos } from '@/api/api';
-import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { persistQueryClient } from '@tanstack/react-query-persist-client';
+import { useFonts } from 'expo-font';
+import * as SplashScreen from 'expo-splash-screen';
+import { useEffect, useState } from 'react';
+import { Platform } from 'react-native';
+import 'react-native-reanimated';
+import HomeScreen from './(tabs)';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -29,63 +24,66 @@ export default function RootLayout() {
     }
   }, [loaded]);
 
-  const queryClient = new QueryClient({
+  const [queryClient] = useState(() => new QueryClient({
     defaultOptions: {
       queries: {
-        gcTime: 1000 * 60 * 60 * 24, // 24 hours
+        // Offline-first configuration
+        networkMode: 'offlineFirst',
+        gcTime: 1000 * 60 * 60 * 24 * 7, // 7 days
+        staleTime: 1000 * 60 * 30, // 30 minutes
+        retry: (failureCount, error) => {
+          // Only retry network errors, not client errors (4xx)
+          if (error.message.includes('Failed to fetch') || 
+              error.message.includes('NetworkError') || 
+              error.message.includes('fetch') ||
+              error.name === 'TypeError') {
+            return failureCount < 3;
+          }
+          return false;
+        },
+        retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+        // Don't refetch automatically - rely on cached data
+        refetchOnMount: false,
+        refetchOnWindowFocus: false,
+        refetchOnReconnect: 'always',
+      },
+      mutations: {
+        // Offline-first mutations
+        networkMode: 'offlineFirst',
+        retry: (failureCount, error) => {
+          // Retry network errors
+          if (error.message.includes('Failed to fetch') || 
+              error.message.includes('NetworkError') ||
+              error.message.includes('fetch') ||
+              error.name === 'TypeError') {
+            return failureCount < 3;
+          }
+          return false;
+        },
+        retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
       },
     },
-  });
+  }));
 
-  const persister = createSyncStoragePersister({
-    storage: window.localStorage,
-  });
-
-  //   const asyncStoragePersistor = {
-  //     persistClient: async (client: any) => {
-  //       try {
-  //         await AsyncStorage.setItem('REACT_QUERY_OFFLINE_CACHE', JSON.stringify(client));
-  //       } catch (error) {
-  //         console.error('Error persisting query client:', error);
-  //       }
-  //     },
-  //     restoreClient: async () => {
-  //       try {
-  //         const cache = await AsyncStorage.getItem('REACT_QUERY_OFFLINE_CACHE');
-  //         return cache ? JSON.parse(cache) : undefined;
-  //       } catch (error) {
-  //         console.error('Error restoring query client:', error);
-  //         return undefined;
-  //       }
-  //     },
-  //     removeClient: async () => {
-  //       try {
-  //         await AsyncStorage.removeItem('REACT_QUERY_OFFLINE_CACHE');
-  //       } catch (error) {
-  //         console.error('Error removing query client:', error);
-  //       }
-  //     },
-  //   };
-
-    persistQueryClient({
-      queryClient,
-      persister: persister,
-    });
+  // Persist query cache on web using localStorage
+  useEffect(() => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const persister = createSyncStoragePersister({ storage: window.localStorage });
+      persistQueryClient({
+        queryClient,
+        persister,
+        maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+      });
+    }
+  }, [queryClient]);
 
   if (!loaded) {
     return null;
   }
 
   return (
-    <PersistQueryClientProvider client={queryClient} persistOptions={{ persister }}>
-      {/* <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" />
-      </Stack>
-      <StatusBar style="auto" /> */}
-      {/* <ReactQueryDevtools initialIsOpen={false} /> */}
+    <QueryClientProvider client={queryClient}>
       <HomeScreen />
-      {/* <StatusBar style="auto" backgroundColor={colorScheme === 'dark' ? '#000' : '#fff'} /> */}
-    </PersistQueryClientProvider>
+    </QueryClientProvider>
   );
 }

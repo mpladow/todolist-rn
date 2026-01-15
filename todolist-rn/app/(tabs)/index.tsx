@@ -1,215 +1,67 @@
-import { StyleSheet, View, Pressable, Dimensions, Text, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
-
-import { ThemedText } from '@/components/ThemedText';
-import { useEffect, useState } from 'react';
-import { TodoDto } from '@/models/todosDto';
-import { TodoForm } from '@/models/todoForm';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { addTodo, completeTodo, deleteTodo, fetchAllTodos, FilterType, openTodo } from '@/api/api';
 import { useTodosQuery } from '@/api';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { borderRadius, borderWidth } from '@/constants';
+import { useAddTodoMutation, useCompleteTodoMutation, useDeleteTodoMutation, useOpenTodoMutation } from '@/api/mutations/Todos';
+import { ThemedKeyboardAvoidingView } from '@/components/ThemedKeyboardAvoidingView';
+import { ThemedText } from '@/components/ThemedText';
 import { CustomButton } from '@/components/ui';
-import Animated, { FadeInDown, FadeInUp, FadeOutLeft } from 'react-native-reanimated';
-import uuid from 'react-native-uuid';
-import { produce } from 'immer';
+import { borderRadius, borderWidth } from '@/constants';
 import { useColorScheme } from '@/hooks/useColorScheme.web';
-import { Keyboard } from 'react-native';
+import { TodoDto } from '@/models/todosDto';
+import { useState } from 'react';
+import { Dimensions, Keyboard, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import Animated, { FadeInDown, FadeInUp, FadeOutLeft } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function HomeScreen() {
   // hooks
   const [title, setTitle] = useState('');
   const [editMode, setEditMode] = useState(false);
-  const queryClient = useQueryClient();
   const { bottom, top } = useSafeAreaInsets();
 
-  const { data, error, refetch } = useTodosQuery('all');
+  const { data, error, refetch } = useTodosQuery();
+  console.log('🚀 ~ HomeScreen ~ data:', data);
+  const { mutate: addTodo } = useAddTodoMutation();
+  const { mutate: deleteTodo } = useDeleteTodoMutation();
+  const { mutate: completeTodo } = useCompleteTodoMutation();
+  const { mutate: openTodo } = useOpenTodoMutation();
 
   const theme = useColorScheme();
 
-  // TODO: extract this mutation logic into a seperate reusable hook so it can be accessed in other locations. This will do for now.
-  const { mutate } = useMutation(
-    {
-      mutationFn: addTodo,
-      onMutate: async (newTodo: TodoDto) => {
-        await queryClient.cancelQueries({ queryKey: ['todos'] });
-
-        const previous: TodoDto[] | undefined = queryClient.getQueryData(['todos']);
-        // Optimistically update to the new value
-        queryClient.setQueryData(['todos'], (old: TodoDto[]) => {
-          return [...old, { ...newTodo }];
-        });
-        // Return a context object with the snapshotted value
-        return { previous };
-      },
-      onError: (err, newTodo, context) => {
-        if (context?.previous) {
-          queryClient.setQueryData(['todos'], [...context?.previous, { ...newTodo, todoId: uuid.v4() }]);
-        }
-      },
-      // Refetch when done
-      onSettled: () => {
-        queryClient.invalidateQueries();
-        if (Platform.OS == 'web') {
-          refetch();
-        }
-      },
-    },
-    queryClient,
-  );
-
-  const { mutate: deleteTodoMutation } = useMutation({
-    mutationFn: deleteTodo,
-    onMutate: async (id: number) => {
-      await queryClient.cancelQueries({ queryKey: ['todos'] });
-      const previous: TodoDto[] | undefined = queryClient.getQueryData(['todos']);
-      // Optimistically update to the new value
-      queryClient.setQueryData(['todos'], (old: TodoDto[]) => {
-        const newArray = old.filter((x) => x.todoId !== id);
-        return newArray;
-      });
-      // Return a context object with the snapshotted value
-      return { previous };
-    },
-    // Refetch when done
-    onSettled: () => {
-      queryClient.invalidateQueries();
-      if (Platform.OS == 'web') {
-        refetch();
-      }
-    },
-  });
-
-  const { mutate: completionMutation } = useMutation({
-    mutationFn: completeTodo,
-    onMutate: async (id: number) => {
-      await queryClient.cancelQueries({ queryKey: ['todos'] });
-
-      const previous: TodoDto[] | undefined = queryClient.getQueryData(['todos']);
-
-      const todoToUpdate = previous?.find((x) => x.todoId === id);
-      if (todoToUpdate) {
-        queryClient.setQueryData(['todos'], () => {
-          produce((old) => {
-            const updated = old.find((x) => x.todoId === id);
-            if (updated) {
-              updated.completedAt = new Date();
-            }
-          });
-        });
-
-        // Return a context object with the snapshotted value
-        return { previous };
-      }
-      // Optimistically update to the new value
-    },
-    onError: (err, id, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(['todos'], (old: TodoDto[] = []) => {
-          return produce(old, (draft) => {
-            const updated = draft.find((x) => x.todoId === id);
-            if (updated) {
-              updated.completedAt = new Date();
-            }
-          });
-        });
-
-        // Return a context object with the snapshotted value
-      } else {
-        return context?.previous;
-      }
-    },
-    // Refetch when done
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['todos'] });
-      if (Platform.OS == 'web') {
-        refetch();
-      }
-    },
-  });
-
-  const { mutate: openTodoMutation } = useMutation({
-    mutationFn: openTodo,
-    onMutate: async (id: number) => {
-      await queryClient.cancelQueries({ queryKey: ['todos'] });
-
-      const previous: TodoDto[] | undefined = queryClient.getQueryData(['todos']);
-      const todoToUpdate = previous?.find((x) => x.todoId === id);
-      if (todoToUpdate) {
-        queryClient.setQueryData(['todos'], (old: TodoDto[] = []) => {
-          produce(old, (draft) => {
-            const updated = draft.find((x) => x.todoId === id);
-            if (updated) {
-              updated.completedAt = undefined;
-            }
-          });
-        });
-
-        // Return a context object with the snapshotted value
-        return { previous };
-      }
-      // Optimistically update to the new value
-    },
-    onError: (error, id, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(['todos'], (old: TodoDto[] = []) => {
-          return produce(old, (draft) => {
-            const updated = draft.find((x) => x.todoId === id);
-            if (updated) {
-              updated.completedAt = undefined;
-            }
-          });
-        });
-
-        // Return a context object with the snapshotted value
-      } else {
-        return context?.previous;
-      }
-    },
-    // Refetch when done
-    onSettled: () => {
-      queryClient.invalidateQueries();
-      if (Platform.OS == 'web') {
-        refetch();
-      }
-    },
-  });
-
   // handlers
   const handleAddNew = () => {
-    const newTodo: TodoForm = {
-      title: title,
+    if (!title.trim()) {
+      return; // Don't add empty todos
+    }
+
+    const newTodo: TodoDto = {
+      title: title.trim(),
     };
-    mutate(newTodo);
+    addTodo(newTodo);
+    setTitle(''); // Clear the input after adding
     Keyboard.dismiss();
   };
 
   const handlePressCheckbox = (id: number) => {
     const foundItem = data?.find((x) => x.todoId === id);
     if (foundItem?.completedAt) {
-      openTodoMutation(id);
+      openTodo(id);
     } else {
-      completionMutation(id);
+      completeTodo(id);
     }
   };
 
   const handleDelete = (id?: number) => {
     if (id) {
-      deleteTodoMutation(id);
+      deleteTodo(id);
     }
   };
+
   return (
-    <KeyboardAvoidingView behavior="height" style={[styles.container, { marginBottom: bottom, marginTop: top }]}>
-      {/* // TODO: move into reusable component */}
+    <ThemedKeyboardAvoidingView style={[styles.container, { marginTop: top }]}>
+      {/* Header with Todo List title and Edit Mode button */}
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 4 }}>
         <View style={{ flex: 1 }}>
           <ThemedText>ToDo List</ThemedText>
         </View>
-        {error && (
-          <View style={{ flex: 1, alignItems: 'center' }}>
-            <ThemedText>Unable to reach API</ThemedText>
-          </View>
-        )}
         <View style={{ flex: 1, alignItems: 'flex-end' }}>
           {data.length > 0 && (
             <CustomButton
@@ -223,6 +75,22 @@ export default function HomeScreen() {
           )}
         </View>
       </View>
+
+      {/* API Connection Error Alert */}
+      {error && (
+        <View style={[styles.alertBox, { backgroundColor: theme === 'dark' ? '#8B0000' : '#FFE4E1' }]}>
+          <View style={styles.alertContent}>
+            <Text style={[styles.alertIcon, { color: theme === 'dark' ? '#FF6B6B' : '#DC143C' }]}>⚠️</Text>
+            <View style={styles.alertTextContainer}>
+              <Text style={[styles.alertTitle, { color: theme === 'dark' ? '#FF6B6B' : '#DC143C' }]}>Connection Error</Text>
+              <Text style={[styles.alertMessage, { color: theme === 'dark' ? '#FFB3B3' : '#8B0000' }]}>
+                Unable to reach API. Working offline. Changes will sync when connection is restored.
+              </Text>
+            </View>
+          </View>
+        </View>
+      )}
+
       <Animated.FlatList
         entering={Platform.OS == 'web' ? undefined : FadeInUp}
         data={data}
@@ -235,17 +103,29 @@ export default function HomeScreen() {
               entering={Platform.OS == 'web' ? undefined : FadeInDown}
               exiting={Platform.OS == 'web' ? undefined : FadeOutLeft}
               style={{ padding: 4, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-              <View style={{ flexDirection: 'row' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <Pressable
                   hitSlop={10}
-                  onPress={() => handlePressCheckbox(item.todoId ?? 0)}
+                  onPress={() => handlePressCheckbox(item?.todoId ?? 0)}
                   style={[
                     styles.checkbox,
-                    { borderColor: theme == 'dark' ? 'white' : 'black' },
-                    item.completedAt ? { backgroundColor: 'blue' } : { backgroundColor: 'transparent' },
-                  ]}
-                />
-                <ThemedText>{item.title}</ThemedText>
+                    {
+                      borderColor: theme == 'dark' ? 'white' : 'black',
+                      backgroundColor: item.completedAt ? (theme == 'dark' ? 'white' : 'black') : 'transparent',
+                    },
+                  ]}>
+                  {item.completedAt && (
+                    <Text style={{ color: theme == 'dark' ? 'black' : 'white', textAlign: 'center', fontSize: 16 }}>✓</Text>
+                  )}
+                </Pressable>
+					 
+                <ThemedText
+                  style={{
+                    textDecorationLine: item.completedAt ? 'line-through' : 'none',
+                    opacity: item.completedAt ? 0.6 : 1,
+                  }}>
+                  {item.title}
+                </ThemedText>
               </View>
               {editMode && (
                 <CustomButton
@@ -264,19 +144,36 @@ export default function HomeScreen() {
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, padding: 4 }}>
         <View style={{ flex: 1 }}>
           <TextInput
-            style={{ padding: 4, borderWidth: 1, borderColor: 'black', color: theme == 'dark' ? 'white' : 'black' }}
+            style={{
+              padding: 8,
+              borderWidth: 1,
+              borderColor: theme === 'dark' ? 'white' : 'black',
+              color: theme === 'dark' ? 'white' : 'black',
+              backgroundColor: theme === 'dark' ? '#333' : '#fff',
+              borderRadius: 4,
+            }}
             value={title}
             onChangeText={(val) => setTitle(val)}
             placeholder={'Enter a todo item'}
+            placeholderTextColor={theme === 'dark' ? '#999' : '#666'}
           />
         </View>
         <View>
-          <Pressable onPress={handleAddNew} style={[{ width: 60, padding: 4, borderRadius: 4 }]}>
+          <Pressable
+            onPress={handleAddNew}
+            style={[
+              {
+                width: 60,
+                padding: 8,
+                borderRadius: 4,
+                backgroundColor: '#007AFF',
+              },
+            ]}>
             <Text style={{ color: 'white', textAlign: 'center' }}>Add</Text>
           </Pressable>
         </View>
       </View>
-    </KeyboardAvoidingView>
+    </ThemedKeyboardAvoidingView>
   );
 }
 
@@ -300,8 +197,48 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius,
     borderWidth: borderWidth,
     borderColor: 'black',
-    marginRight: 4,
+    marginRight: 8,
     width: 24,
     height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  alertBox: {
+    marginVertical: 8,
+    marginHorizontal: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#DC143C',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.22,
+    shadowRadius: 2.22,
+  },
+  alertContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  alertIcon: {
+    fontSize: 20,
+    marginRight: 8,
+    marginTop: 2,
+  },
+  alertTextContainer: {
+    flex: 1,
+  },
+  alertTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 2,
+  },
+  alertMessage: {
+    fontSize: 12,
+    lineHeight: 16,
   },
 });

@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "vqiQlmbCXAM=",
+  "dgSpecHash": "jbqJrlXe59c=",
   "success": true,
-  "projectFilePath": "C:\\Users\\mplad\\source\\repos\\todolist\\todolist-api-tests\\todolist-api-tests.csproj",
+  "projectFilePath": "C:\\Users\\mplad\\source\\repos\\todolist-rn\\todolist-api-tests\\todolist-api-tests.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\mplad\\.nuget\\packages\\castle.core\\5.1.1\\castle.core.5.1.1.nupkg.sha512",
     "C:\\Users\\mplad\\.nuget\\packages\\coverlet.collector\\6.0.2\\coverlet.collector.6.0.2.nupkg.sha512",

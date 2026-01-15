@@ -1,19 +1,30 @@
-import { TodoForm } from '@/models/todoForm';
 import { TodoDto } from '@/models/todosDto';
 
 const url = process.env.EXPO_PUBLIC_API_URL ?? "";
-export type FilterType = "all" | "completed" | "notCompleted"
 
-
-// export const fetchAllTodos = async (): Promise<TodoDto[]> => {
-// 	const TODO_ENDPOINT = 'Todo/GetAllTodos'
-// 	const response = await fetch(`${url}/${TODO_ENDPOINT}`)
-// 	return response.json();
-// }
 export const fetchAllTodos = async (): Promise<TodoDto[]> => {
-	const TODO_ENDPOINT = 'Todo/GetAllTodos'
-	const response = await fetch(`${url}${TODO_ENDPOINT}`)
-	return response.json();
+	try {
+		const ENDPOINT = `Todo/GetAllTodos`;
+		const response = await fetch(`${url}${ENDPOINT}`, {
+			method: 'GET', 
+			headers: {
+				Accept: 'application/json',
+				'Content-Type': 'application/json'
+			},
+		})
+		
+		if (!response.ok) {
+			throw new Error(`Failed to fetch todos: ${response.statusText}`);
+		}
+		
+		const data = await response.json();
+		console.log('Successfully fetched todos from API');
+		return data;
+	} catch (error) {
+		console.log('API fetch failed, will use cached data:', error);
+		// Re-throw the error so TanStack Query can handle it appropriately
+		throw error;
+	}
 }
 
 export const addTodo = async (newTodo: TodoDto) => {
@@ -26,6 +37,34 @@ export const addTodo = async (newTodo: TodoDto) => {
 		body: JSON.stringify(newTodo)
 	})
 	return response.json();
+}
+
+export const syncTodoList = async (newTodos: TodoDto[]) => {
+	try {
+		const ENDPOINT = `Todo/SyncTodoList`;
+		const response = await fetch(`${url}${ENDPOINT}`, {
+			method: 'POST', headers: {
+				Accept: 'application/json',
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify(newTodos)
+		})
+		
+		if (!response.ok) {
+			throw new Error(`Sync failed: ${response.statusText}`);
+		}
+		
+		const result = await response.json();
+		console.log('Successfully synced todos to API');
+		return result;
+	} catch (error) {
+		console.log('Sync to API failed:', error);
+		// Re-throw with network-specific error type for retry logic
+		// if (error instanceof TypeError || error.message.includes('fetch')) {
+		// 	throw new Error(`NetworkError: ${error.message}`);
+		// }
+		throw error;
+	}
 }
 
 
